@@ -32,7 +32,10 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 set (SRCS src/fusion.cpp
           src/Camera.cpp
-          src/main.cpp src/common.cpp)
+          src/ParticleFilter.cpp
+          src/gaussian.cpp
+          src/GridMap.cpp
+          src/main.cpp )
 
 set(LIBS ${catkin_LIBRARIES}
          ${OpenCV_LIBRARIES})

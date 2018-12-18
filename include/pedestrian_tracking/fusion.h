@@ -11,30 +11,31 @@
 #include "camera/camera.h"
 #include "geometry_msgs/PointStamped.h"
 #include "common/gaussian.h"
+#include "ParticleFilter.h"
+#include "grid_map/GridMap.h"
+#include "common/utils.h"
 
 namespace luyifan{
 
-#define ROWS 600
-#define COLS 250
+///Position of camera in grid map
 #define OriginX 125
 #define OriginY 100
+#define Partcile_NUM 10
 
     class Fusion{
     public:
-        Fusion(Camera::Ptr _camera);
+        Fusion(Camera::Ptr _camera, GridMap::Ptr _map);
         ~Fusion();
 
         void Process(cv::Mat _map, Eigen::Vector4i _uvs);
         Eigen::Vector2i ProjectiveCamera2GridPixel(Eigen::Vector3d _pos);
-        Eigen::Vector2i GetPixelOnEdge(Eigen::Vector2i _begin, Eigen::Vector2i _end);
-        Eigen::Vector2i Average(std::vector<Eigen::Vector2i> _As);
-        void ApplyMaskToMap(cv::Mat _src, cv::Mat _mask);
-        void ObjectExtractor(cv::Mat _src, std::vector<geometry_msgs::PointStamped>& _objects);
+        Eigen::Vector3d ProjectiveGridPixel2Camera(Eigen::Vector2i _pos);
+        int ObjectAssociation(Eigen::Vector4i _uvs);
     private:
         ///Camera
-        cv::Point pos_cam_;
         Camera::Ptr camera_;
-
+        GridMap::Ptr map_;
+        std::vector<ParticleFilter> pedestrians_;
     };
 }
 #endif //PEDESTRIAN_TRACKING_FUSION_H

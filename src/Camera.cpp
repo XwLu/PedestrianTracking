@@ -22,3 +22,10 @@ Vector3d Camera::ProjectivePixel2Camera(Vector2d _uv, double _depth) {
          _depth
     );
 }
+
+Vector2i Camera::ProjectiveCamera2Pixel(Eigen::Vector3d _pos) {
+    return Vector2i(
+          fx_ * _pos(0) / _pos(2) + cx_,
+          fy_ * _pos(1) / _pos(2) + cy_
+    );
+}

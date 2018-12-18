@@ -64,7 +64,8 @@ int main(int argc, char** argv){
     ros::Subscriber sub_bbx_ = nh.subscribe("/bbx", 1, BoundingBoxCallback);
 
     luyifan::Camera::Ptr camera(new luyifan::Camera(1024/2, 768/2, 518.0, 519.0));
-    fusion = new luyifan::Fusion(camera);
+    luyifan::GridMap::Ptr grid_map(new luyifan::GridMap(600, 250, 125, 100, 0.2));
+    fusion = new luyifan::Fusion(camera, grid_map);
 
     cout<<"MultiThread Receiving!"<<endl;
     ros::AsyncSpinner spinner_1(1, &queue_1);
