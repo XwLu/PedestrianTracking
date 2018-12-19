@@ -16,6 +16,14 @@ namespace luyifan{
         }
         return Eigen::Vector2i(sum1/_As.size(), sum2/_As.size());
     }
+
+    inline double VelocityLimit(double _vel, double _limit){
+        if(_vel > 0){
+            return std::min(_limit, _vel);
+        } else{
+            return - std::min(_limit, -_vel);
+        }
+    }
 }
 
 #endif //PEDESTRIAN_TRACKING_UTILS_H

@@ -105,8 +105,8 @@ void Fusion::Process(cv::Mat _map, Eigen::Vector4i _uvs) {
     } else{
         pedestrians_[index].Update(candidates);
     }
-
     /*
+    cout<<"draw particles"<<endl;
     vector<geometry_msgs::Pose> particles = pedestrians_.front().Particles();
     for(auto p:particles){
         auto p_map_pix = map_->Map2Pixel(Vector2i(p.position.x, p.position.y));
@@ -116,6 +116,14 @@ void Fusion::Process(cv::Mat _map, Eigen::Vector4i _uvs) {
     imshow("map with particles", grid_map);
     waitKey(5);
     */
+
+    for(auto ped:pedestrians_){
+        auto map_pix = map_->Map2Pixel(Vector2i(ped.TmpResult().position.x, ped.TmpResult().position.y));
+        circle(grid_map, Point(map_pix(0), map_pix(1)), 4, Scalar(255), 1);
+    }
+    imshow("map with result", grid_map);
+    waitKey(5);
+
 }
 
 

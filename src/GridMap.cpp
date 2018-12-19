@@ -83,7 +83,7 @@ void GridMap::ObjectExtractor(cv::Mat _src, vector<geometry_msgs::PointStamped>&
         object.point.z = 0;///该点是行人的置信度
         _objects.emplace_back(object);
     }
-    cout<<"find "<<_objects.size()<<" objects."<<endl;
+    //cout<<"find "<<_objects.size()<<" objects."<<endl;
     imshow("objects", _src);
     waitKey(5);
 }
