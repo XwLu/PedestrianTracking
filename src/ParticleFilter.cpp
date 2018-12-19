@@ -10,7 +10,7 @@ using namespace Eigen;
 using namespace cv;
 
 ParticleFilter::ParticleFilter(int _num, vector<geometry_msgs::PointStamped>& _candidates):
-num_(_num), mean_(0.0), stddev_(3.0){
+num_(_num), mean_(0.0), stddev_(2.0){
     sort(_candidates.begin(), _candidates.end(), [](const geometry_msgs::PointStamped& p1,
                                                     const geometry_msgs::PointStamped& p2){
         return p1.point.z > p2.point.z;
@@ -38,7 +38,7 @@ vector<pair<int, Vector2d>> ParticleFilter::DistributeParticles(const vector<geo
     int sum = 0;
     for(auto can : _candidates){
         int n =cvRound(num_ * can.point.z / confidences);
-        cout<<"num particle: "<<n<<endl;
+        //cout<<"num particle: "<<n<<endl;
         sum += n;
         if(sum > num_ || n == 0)
             break;
@@ -153,6 +153,6 @@ void ParticleFilter::Update(const std::vector<geometry_msgs::PointStamped>& _can
     ///更新速度,行人的速度不大于4m/s,每个循环0.1s(2个像素)
     vel_.linear.x = VelocityLimit(res.position.x - tmp_result_.position.x, 1);
     vel_.linear.y = VelocityLimit(res.position.y - tmp_result_.position.y, 1);
-    cout<<"v_x: "<<vel_.linear.x<<" v_y: "<<vel_.linear.y<<endl;
+    //cout<<"v_x: "<<vel_.linear.x<<" v_y: "<<vel_.linear.y<<endl;
     tmp_result_ = res;
 }

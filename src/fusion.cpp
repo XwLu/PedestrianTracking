@@ -88,10 +88,10 @@ void Fusion::Process(cv::Mat _map, Eigen::Vector4i _uvs) {
     ///计算候选点的置信度
     xyz_cam = camera_->ProjectivePixel2Camera(Vector2d(0.5*(_uvs(0)+_uvs(2)), 0.5*(_uvs(1) + _uvs(3))), depth);
     xy_map = ProjectiveCamera2GridPixel(xyz_cam);
-    Gaussian gaussian(xy_map(0), map_->Rows()-xy_map(1), 3, 30);
+    Gaussian gconf(xy_map(0), map_->Rows()-xy_map(1), 8, 80);
     for(auto& object: candidates){
-        object.point.z = gaussian.GetValue(object.point.x, object.point.y);
-        //cout<<"x: "<<object.point.x<<" y: "<<object.point.y<<" z: "<<object.point.z<<endl;
+        object.point.z = gconf.GetValue(object.point.x, object.point.y);
+        cout<<"x: "<<object.point.x<<" y: "<<object.point.y<<" z: "<<object.point.z<<endl;
     }
 
     ///确定是否是新的目标
@@ -105,7 +105,7 @@ void Fusion::Process(cv::Mat _map, Eigen::Vector4i _uvs) {
     } else{
         pedestrians_[index].Update(candidates);
     }
-    /*
+
     cout<<"draw particles"<<endl;
     vector<geometry_msgs::Pose> particles = pedestrians_.front().Particles();
     for(auto p:particles){
@@ -115,15 +115,15 @@ void Fusion::Process(cv::Mat _map, Eigen::Vector4i _uvs) {
     }
     imshow("map with particles", grid_map);
     waitKey(5);
-    */
 
+    /*
     for(auto ped:pedestrians_){
         auto map_pix = map_->Map2Pixel(Vector2i(ped.TmpResult().position.x, ped.TmpResult().position.y));
         circle(grid_map, Point(map_pix(0), map_pix(1)), 4, Scalar(255), 1);
     }
     imshow("map with result", grid_map);
     waitKey(5);
-
+    */
 }
 
 
