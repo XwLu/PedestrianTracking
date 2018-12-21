@@ -2,6 +2,8 @@
 #include "common/my_mutex.h"
 
 using namespace std;
+#define IMAGE_ROWS 1280.0
+#define IMAGE_COLS 720.0
 
 cv::Mat global_grid_map;
 boost::shared_mutex mutex_map;
@@ -21,34 +23,38 @@ void GridMapCallback(const sensor_msgs::ImageConstPtr &_map) {
             }
         }
     }
+    //fusion->Show(global_grid_map);
 }
 
-void BoundingBoxCallback(const sensor_msgs::ChannelFloat32ConstPtr &_bbx) {
-    //cout<<"bbx!"<<endl;
+void BoundingBoxCallback(const std_msgs::Float64MultiArrayConstPtr& _bbxs) {
+    //cout<<"bbx: "<<_bbxs->data.size()<<endl;
+
     if(global_grid_map.empty())
         return;
     luyifan::read_lock rlock(mutex_map);
 
     ///获取bbx
     double u_left_top, v_left_top, u_right_bottom, v_right_bottom;
-    u_left_top = 1024/2 - 60;//TODO: 调试用
-    v_left_top = 768/2;
-    u_right_bottom = 1024/2 + 60;
-    v_right_bottom = 768/2;
+    u_left_top = IMAGE_ROWS/2 - 60;//TODO: 调试用
+    v_left_top = IMAGE_COLS/2;
+    u_right_bottom = IMAGE_ROWS/2 + 60;
+    v_right_bottom = IMAGE_COLS/2;
 
-    int num = 1;
+    //uint64_t num = _bbxs->data.size()/4;
+    uint64_t num = 1;
     ///处理
     for(int i=0; i<num; ++i){
         /*
-        u_left_top = _bbx->values[i*4];
-        v_left_top = _bbx->values[i*4+1];
-        u_right_bottom = _bbx->values[i*4+2];
-        v_right_bottom = _bbx->values[i*4+3];
+        u_left_top = _bbxs->data[i*4];
+        v_left_top = _bbxs->data[i*4+1];
+        u_right_bottom = _bbxs->data[i*4+2];
+        v_right_bottom = _bbxs->data[i*4+3];
         */
         global_uvs<<u_left_top, v_left_top, u_right_bottom, v_right_bottom;
         fusion->Process(global_grid_map, global_uvs);
     }
 }
+
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "fusion");
@@ -61,9 +67,9 @@ int main(int argc, char** argv){
     image_transport::Subscriber sub_grid_map_;
     sub_grid_map_ = it.subscribe("/grid_map_origin", 1, GridMapCallback);
     nh.setCallbackQueue(&queue_2);
-    ros::Subscriber sub_bbx_ = nh.subscribe("/bbx", 1, BoundingBoxCallback);
+    ros::Subscriber sub_bbx_ = nh.subscribe("/pedestrian", 1, BoundingBoxCallback);
 
-    luyifan::Camera::Ptr camera(new luyifan::Camera(1024/2, 768/2, 518.0, 519.0));
+    luyifan::Camera::Ptr camera(new luyifan::Camera(IMAGE_ROWS/2, IMAGE_COLS/2, 518.0, 519.0));
     luyifan::GridMap::Ptr grid_map(new luyifan::GridMap(600, 250, 125, 100, 0.2));
     fusion = new luyifan::Fusion(camera, grid_map);
 

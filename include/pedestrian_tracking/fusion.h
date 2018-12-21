@@ -5,7 +5,6 @@
 #include "image_transport/subscriber.h"
 #include "image_transport/image_transport.h"
 #include "sensor_msgs/Image.h"
-#include "sensor_msgs/ChannelFloat32.h"
 #include "cv_bridge/cv_bridge.h"
 #include "ros/callback_queue.h"
 #include "camera/camera.h"
@@ -14,6 +13,7 @@
 #include "ParticleFilter.h"
 #include "grid_map/GridMap.h"
 #include "common/utils.h"
+#include "std_msgs/Float64MultiArray.h"
 
 namespace luyifan{
 
@@ -27,10 +27,12 @@ namespace luyifan{
         Fusion(Camera::Ptr _camera, GridMap::Ptr _map);
         ~Fusion();
 
-        void Process(cv::Mat _map, Eigen::Vector4i _uvs);
+        void Process(const cv::Mat& _map, const Eigen::Vector4i& _uvs);
+        void Show(const cv::Mat& _map);
         Eigen::Vector2i ProjectiveCamera2GridPixel(Eigen::Vector3d _pos);
         Eigen::Vector3d ProjectiveGridPixel2Camera(Eigen::Vector2i _pos);
         int ObjectAssociation(Eigen::Vector4i _uvs);
+        inline std::vector<ParticleFilter> Pedestrians(){return pedestrians_;}
     private:
         ///Camera
         Camera::Ptr camera_;

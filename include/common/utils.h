@@ -24,6 +24,17 @@ namespace luyifan{
             return - std::min(_limit, -_vel);
         }
     }
+
+    inline double Dist2Line(const Eigen::Vector2d& _begin, const Eigen::Vector2d& _end, const Eigen::Vector2d& _point){
+        if(_begin(0) == _end(0)){
+            return fabs(_point(0) - _begin(0));
+        }
+
+        double k = (_end(1) - _begin(1)) / (_end(0) - _begin(0));
+        double b = _begin(1) - k * _begin(0);
+
+        return fabs(k * _point(0) - _point(1) + b) / pow(1 + k*k, 0.5);
+    }
 }
 
 #endif //PEDESTRIAN_TRACKING_UTILS_H

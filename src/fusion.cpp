@@ -42,7 +42,32 @@ int Fusion::ObjectAssociation(Eigen::Vector4i _uvs) {
     return -1;//新出现的人
 }
 
-void Fusion::Process(cv::Mat _map, Eigen::Vector4i _uvs) {
+void Fusion::Show(const cv::Mat& _map) {
+    Mat grid_map;
+    _map.copyTo(grid_map);
+    //dilate(grid_map, grid_map, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+    //cout<<"draw particles"<<endl;
+    for(auto ped:pedestrians_){
+        vector<geometry_msgs::Pose> particles = ped.Particles();
+        for(auto p:particles){
+            auto p_map_pix = map_->Map2Pixel(Vector2i(p.position.x, p.position.y));
+            //cout<<"x: "<<p_map_pix(0)<<" y: "<<p_map_pix(1)<<endl;
+            circle(grid_map, Point(p_map_pix(0), p_map_pix(1)), 1, Scalar(255), 1);
+        }
+    }
+    imshow("map with particles", grid_map);
+    waitKey(5);
+    //cout<<"draw pedestrians"<<endl;
+    for(auto ped:pedestrians_){
+        auto map_pix = map_->Map2Pixel(Eigen::Vector2i(ped.TmpResult().position.x, ped.TmpResult().position.y));
+        circle(grid_map, Point(map_pix(0), map_pix(1)), 4, Scalar(255), 1);
+    }
+    imshow("map with pedestrians", grid_map);
+    waitKey(5);
+}
+
+
+void Fusion::Process(const cv::Mat& _map, const Eigen::Vector4i& _uvs) {
     //imshow("grid_map_origin", _map);
     //waitKey(5);
     ///计算mask
@@ -62,7 +87,7 @@ void Fusion::Process(cv::Mat _map, Eigen::Vector4i _uvs) {
     line(mask3C, Point(OriginX, map_->Rows()-OriginY), Point(xy2(0), xy2(1)), Scalar(255), 2, CV_AA);
     edges.emplace_back(Vector2i(OriginX, map_->Rows()-OriginY));
 
-    //line(mask3C, Point(xy1(0), xy1(1)), Point(xy2(0), xy2(1)), Scalar(255), 2, CV_AA);
+    line(mask3C, Point(xy1(0), xy1(1)), Point(xy2(0), xy2(1)), Scalar(255), 2, CV_AA);
     Mat mask(_map.size(), CV_8UC1, cv::Scalar(0));
     threshold(mask3C, mask, 10, 255.0, CV_THRESH_BINARY);
     Vector2i seed = Average(edges);
@@ -88,15 +113,22 @@ void Fusion::Process(cv::Mat _map, Eigen::Vector4i _uvs) {
     ///计算候选点的置信度
     xyz_cam = camera_->ProjectivePixel2Camera(Vector2d(0.5*(_uvs(0)+_uvs(2)), 0.5*(_uvs(1) + _uvs(3))), depth);
     xy_map = ProjectiveCamera2GridPixel(xyz_cam);
-    Gaussian gconf(xy_map(0), map_->Rows()-xy_map(1), 8, 80);
+    Gaussian gconf(0, 0, 8, 80);
     for(auto& object: candidates){
-        object.point.z = gconf.GetValue(object.point.x, object.point.y);
-        cout<<"x: "<<object.point.x<<" y: "<<object.point.y<<" z: "<<object.point.z<<endl;
+        double lat = Dist2Line(Vector2d(OriginX, OriginY), Vector2d(xy_map(0), map_->Rows()-xy_map(1)), Vector2d(object.point.x, object.point.y));
+        double lon = pow(lat*lat + pow(object.point.x-xy_map(0), 2.0) + pow(object.point.y-map_->Rows()+xy_map(1), 2.0), 0.5);
+        object.point.z = gconf.GetValue(lat, lon);
+        //cout<<"x: "<<object.point.x<<" y: "<<object.point.y<<" z: "<<object.point.z<<endl;
+        cout<<"x: "<<lat<<" y: "<<lon<<" z: "<<object.point.z<<endl;
+    }
+
+    if(candidates.empty()){
+        ROS_ERROR("no candidates in laser scanner!!");
+        return;
     }
 
     ///确定是否是新的目标
     int index = ObjectAssociation(_uvs);
-
     //新出现的人
     if(index < 0){
         cout<<"New pedestrian show up!"<<candidates.size()<<" candidates detected!"<<endl;
@@ -106,24 +138,6 @@ void Fusion::Process(cv::Mat _map, Eigen::Vector4i _uvs) {
         pedestrians_[index].Update(candidates);
     }
 
-    cout<<"draw particles"<<endl;
-    vector<geometry_msgs::Pose> particles = pedestrians_.front().Particles();
-    for(auto p:particles){
-        auto p_map_pix = map_->Map2Pixel(Vector2i(p.position.x, p.position.y));
-        //cout<<"x: "<<p_map_pix(0)<<" y: "<<p_map_pix(1)<<endl;
-        circle(grid_map, Point(p_map_pix(0), p_map_pix(1)), 2, Scalar(255), 1);
-    }
-    imshow("map with particles", grid_map);
-    waitKey(5);
-
-    /*
-    for(auto ped:pedestrians_){
-        auto map_pix = map_->Map2Pixel(Vector2i(ped.TmpResult().position.x, ped.TmpResult().position.y));
-        circle(grid_map, Point(map_pix(0), map_pix(1)), 4, Scalar(255), 1);
-    }
-    imshow("map with result", grid_map);
-    waitKey(5);
-    */
 }
 
 

@@ -72,7 +72,7 @@ void GridMap::ObjectExtractor(cv::Mat _src, vector<geometry_msgs::PointStamped>&
         if(map_y > 200)
             continue;
         ///画出检测到的候选点
-        circle(_src, Point(boundRect[i].x, boundRect[i].y), 4, Scalar(255), 1);
+        //circle(_src, Point(boundRect[i].x, boundRect[i].y), 4, Scalar(255), 1);
         //cout<<"x: "<<map_x<<" y: "<<map_y<<endl;
         geometry_msgs::PointStamped object;
         object.header.frame_id = "grid_map";
@@ -84,8 +84,8 @@ void GridMap::ObjectExtractor(cv::Mat _src, vector<geometry_msgs::PointStamped>&
         _objects.emplace_back(object);
     }
     //cout<<"find "<<_objects.size()<<" objects."<<endl;
-    imshow("objects", _src);
-    waitKey(5);
+    //imshow("objects", _src);
+    //waitKey(5);
 }
 
 
