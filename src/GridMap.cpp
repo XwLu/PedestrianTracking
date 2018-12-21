@@ -41,7 +41,7 @@ Vector2i GridMap::GetPixelOnEdge(Eigen::Vector2i _begin, Eigen::Vector2i _end) {
         return Vector2i(x0, 0);
     }
     else{
-        double y0 = _begin(1) + (rows_-_begin(0))*(_end(1) - _begin(1))/(_end(0) - _begin(0));
+        double y0 = _begin(1) + (cols_-_begin(0))*(_end(1) - _begin(1))/(_end(0) - _begin(0));
         if(y0 > 0)
             return Vector2i(cols_, y0);
         double x0 = _begin(0) - _begin(1)*(_end(0) - _begin(0))/(_end(1) - _begin(1));
@@ -49,7 +49,7 @@ Vector2i GridMap::GetPixelOnEdge(Eigen::Vector2i _begin, Eigen::Vector2i _end) {
     }
 }
 
-void GridMap::ObjectExtractor(cv::Mat _src, vector<geometry_msgs::PointStamped>& _objects) {
+void GridMap::ObjectExtractor(const cv::Mat& _src, vector<geometry_msgs::PointStamped>& _objects) {
     Mat tmp;
     dilate(_src, tmp, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
     //imshow("grid_map_dilate", tmp);
@@ -72,7 +72,7 @@ void GridMap::ObjectExtractor(cv::Mat _src, vector<geometry_msgs::PointStamped>&
         if(map_y > 200)
             continue;
         ///画出检测到的候选点
-        //circle(_src, Point(boundRect[i].x, boundRect[i].y), 4, Scalar(255), 1);
+        //circle(tmp, Point(boundRect[i].x, boundRect[i].y), 4, Scalar(255), 1);
         //cout<<"x: "<<map_x<<" y: "<<map_y<<endl;
         geometry_msgs::PointStamped object;
         object.header.frame_id = "grid_map";
@@ -83,8 +83,9 @@ void GridMap::ObjectExtractor(cv::Mat _src, vector<geometry_msgs::PointStamped>&
         object.point.z = 0;///该点是行人的置信度
         _objects.emplace_back(object);
     }
+    //circle(tmp, Point(126, 492), 2, Scalar(255), 1);
     //cout<<"find "<<_objects.size()<<" objects."<<endl;
-    //imshow("objects", _src);
+    //imshow("objects", tmp);
     //waitKey(5);
 }
 

@@ -20,7 +20,7 @@ namespace luyifan{
         ~ParticleFilter();
 
         inline std::vector<geometry_msgs::Pose> Particles() {return particles_;}
-        inline geometry_msgs::Pose Result(){return result_;}
+        inline geometry_msgs::Pose Result(){return tmp_result_;}
         inline geometry_msgs::Pose TmpResult(){return tmp_result_;}
         void Update(const std::vector<geometry_msgs::PointStamped>& _candidates);
         std::vector<std::pair<int, Eigen::Vector2d>> DistributeParticles(const std::vector<geometry_msgs::PointStamped>& _candidates);

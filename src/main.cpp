@@ -2,8 +2,8 @@
 #include "common/my_mutex.h"
 
 using namespace std;
-#define IMAGE_ROWS 1280.0
-#define IMAGE_COLS 720.0
+#define IMAGE_ROWS 720.0
+#define IMAGE_COLS 1280.0
 
 cv::Mat global_grid_map;
 boost::shared_mutex mutex_map;
@@ -23,7 +23,7 @@ void GridMapCallback(const sensor_msgs::ImageConstPtr &_map) {
             }
         }
     }
-    //fusion->Show(global_grid_map);
+    fusion->Show(global_grid_map);
 }
 
 void BoundingBoxCallback(const std_msgs::Float64MultiArrayConstPtr& _bbxs) {
@@ -40,16 +40,17 @@ void BoundingBoxCallback(const std_msgs::Float64MultiArrayConstPtr& _bbxs) {
     u_right_bottom = IMAGE_ROWS/2 + 60;
     v_right_bottom = IMAGE_COLS/2;
 
-    //uint64_t num = _bbxs->data.size()/4;
-    uint64_t num = 1;
+    uint64_t num = _bbxs->data.size()/4;
+    if(!num)
+        return;
     ///处理
     for(int i=0; i<num; ++i){
-        /*
+        cout<<"processing "<<i+1<<" pedestrian."<<endl;
         u_left_top = _bbxs->data[i*4];
         v_left_top = _bbxs->data[i*4+1];
         u_right_bottom = _bbxs->data[i*4+2];
         v_right_bottom = _bbxs->data[i*4+3];
-        */
+
         global_uvs<<u_left_top, v_left_top, u_right_bottom, v_right_bottom;
         fusion->Process(global_grid_map, global_uvs);
     }
@@ -69,7 +70,7 @@ int main(int argc, char** argv){
     nh.setCallbackQueue(&queue_2);
     ros::Subscriber sub_bbx_ = nh.subscribe("/pedestrian", 1, BoundingBoxCallback);
 
-    luyifan::Camera::Ptr camera(new luyifan::Camera(IMAGE_ROWS/2, IMAGE_COLS/2, 518.0, 519.0));
+    luyifan::Camera::Ptr camera(new luyifan::Camera(IMAGE_COLS/2, IMAGE_ROWS/2, 830.0, 830.0));
     luyifan::GridMap::Ptr grid_map(new luyifan::GridMap(600, 250, 125, 100, 0.2));
     fusion = new luyifan::Fusion(camera, grid_map);
 

@@ -18,8 +18,9 @@
 namespace luyifan{
 
 ///Position of camera in grid map
-#define OriginX 125
-#define OriginY 100
+#define CameraX 126
+#define CameraY 108
+//number of particles in PF
 #define Partcile_NUM 20
 
     class Fusion{
