@@ -28,19 +28,55 @@ Vector3d Fusion::ProjectiveGridPixel2Camera(Eigen::Vector2i _pos) {
     );
 }
 
-int Fusion::ObjectAssociation(Eigen::Vector4i _uvs) {
+std::vector<std::pair<int, Eigen::Vector4i>> Fusion::ObjectAssociation(Eigen::Vector4i _uvs) {
     int id = 0;
     for(auto pedestrian : pedestrians_){
-        Vector2i pix = map_->Map2Pixel(Eigen::Vector2i(pedestrian.Result().position.x, pedestrian.Result().position.y));
-        Vector3d cam = ProjectiveGridPixel2Camera(pix);
-        Vector2i uv = camera_->ProjectiveCamera2Pixel(cam);
-        //距离小于10个像素就是同一个人
-        cout<<"depth: "<<cam(2)<<" distance: "<<fabs(uv(0) - 0.5*(_uvs(0) + _uvs(2)))<<endl;
+
         if(fabs(uv(0) - 0.5*(_uvs(0) + _uvs(2))) < std::max(700.0 / max(cam(2), 0.1) + 200, 200.0))
             return id;
         id++;
     }
     return -1;//新出现的人
+}
+
+vector<pair<int, Eigen::Vector4i>> Fusion::ObjectAssociation(vector<Eigen::Vector4i> _uvs) {
+    ///暴力匹配
+    map<double, pair<int, int>> maps;
+    ///每种组合求距离
+    for(int i=0; i<_uvs.size(); i++){
+        for(int j=0; j<pedestrians_.size(); j++){
+            Vector2i pix = map_->Map2Pixel(Eigen::Vector2i(pedestrians_[j].Result().position.x, pedestrians_[j].Result().position.y));
+            Vector3d cam = ProjectiveGridPixel2Camera(pix);
+            Vector2i uv = camera_->ProjectiveCamera2Pixel(cam);
+            double distance = fabs(uv(0) - 0.5*(_uvs[i](0) + _uvs[i](2)));
+            maps[distance] = pair<int, int>(i, j);
+            //cout<<"depth: "<<cam(2)<<" distance: "<<distance<<endl;
+        }
+    }
+    ///提取组合
+    vector<pair<int, int>> pairs;
+    for(int i=0; i<min(_uvs.size(), pedestrians_.size()); i++){
+        if(maps.begin()->first > 500){
+            ROS_ERROR("Distance too large. Break directly!");
+            break;
+        }
+        pair<int, int> p = maps.begin()->second;
+        int first = p.first;
+        int second = p.second;
+        pairs.emplace_back(p);
+        maps.erase(maps.begin());
+        for(auto iter=maps.begin(); iter!=maps.end(); iter++){
+            if(iter->second.first == first || iter->second.second == second)
+                maps.erase(iter);
+        }
+    }
+    ///存入已经提取的组合
+    vector<pair<int, Eigen::Vector4i>> associations(_uvs.size());
+    for(auto p:pairs){
+        associations.emplace_back(pair<int, Eigen::Vector4i>(p.second, _uvs[p.first]));
+        //TODO: _uvs.erase(&(_uvs[p.first]));
+    }
+    //TODO: 新目标的组合
 }
 
 void Fusion::Show(const cv::Mat& _map) {
@@ -73,7 +109,7 @@ void Fusion::Show(const cv::Mat& _map) {
 }
 
 
-void Fusion::Process(const cv::Mat& _map, const Eigen::Vector4i& _uvs) {
+void Fusion::Process(const cv::Mat& _map, const pair<int, Eigen::Vector4i>& _pair) {
     //imshow("grid_map_origin", _map);
     //waitKey(5);
     ///计算mask
@@ -138,8 +174,8 @@ void Fusion::Process(const cv::Mat& _map, const Eigen::Vector4i& _uvs) {
     ///确定是否是新的目标
     int index = ObjectAssociation(_uvs);
     //TODO: 调试
-    //if(!pedestrians_.empty())
-    //    index = 0;
+    if(!pedestrians_.empty())
+        index = 0;
     //新出现的人
     if(index < 0){
         cout<<"New pedestrian show up!"<<candidates.size()<<" candidates detected!"<<endl;

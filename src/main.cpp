@@ -7,7 +7,6 @@ using namespace std;
 
 cv::Mat global_grid_map;
 boost::shared_mutex mutex_map;
-Eigen::Vector4i global_uvs;
 
 luyifan::Fusion* fusion;
 
@@ -27,33 +26,32 @@ void GridMapCallback(const sensor_msgs::ImageConstPtr &_map) {
 }
 
 void BoundingBoxCallback(const std_msgs::Float64MultiArrayConstPtr& _bbxs) {
-    //cout<<"bbx: "<<_bbxs->data.size()<<endl;
-
     if(global_grid_map.empty())
         return;
+    ///forbid update of grid map
     luyifan::read_lock rlock(mutex_map);
-
     ///获取bbx
-    double u_left_top, v_left_top, u_right_bottom, v_right_bottom;
-    u_left_top = IMAGE_ROWS/2 - 60;//TODO: 调试用
-    v_left_top = IMAGE_COLS/2;
-    u_right_bottom = IMAGE_ROWS/2 + 60;
-    v_right_bottom = IMAGE_COLS/2;
-
     uint64_t num = _bbxs->data.size()/4;
     if(!num)
         return;
     ///处理
+    vector<Eigen::Vector4i> global_uvs(num);
     for(int i=0; i<num; ++i){
-        cout<<"processing "<<i+1<<" pedestrian."<<endl;
+        double u_left_top, v_left_top, u_right_bottom, v_right_bottom;
         u_left_top = _bbxs->data[i*4];
         v_left_top = _bbxs->data[i*4+1];
         u_right_bottom = _bbxs->data[i*4+2];
         v_right_bottom = _bbxs->data[i*4+3];
-
-        global_uvs<<u_left_top, v_left_top, u_right_bottom, v_right_bottom;
-        fusion->Process(global_grid_map, global_uvs);
+        Eigen::Vector4i uv;
+        uv<<u_left_top, v_left_top, u_right_bottom, v_right_bottom;
+        global_uvs.emplace_back(uv);
     }
+    vector<pair<int, Eigen::Vector4i>> pairs(num);
+    pairs = fusion->ObjectAssociation(global_uvs);
+    for(auto p : pairs){
+        fusion->Process(global_grid_map, p);
+    }
+
 }
 
 
@@ -70,7 +68,7 @@ int main(int argc, char** argv){
     nh.setCallbackQueue(&queue_2);
     ros::Subscriber sub_bbx_ = nh.subscribe("/pedestrian", 1, BoundingBoxCallback);
 
-    luyifan::Camera::Ptr camera(new luyifan::Camera(IMAGE_COLS/2, IMAGE_ROWS/2, 830.0, 830.0));
+    luyifan::Camera::Ptr camera(new luyifan::Camera(588.860101, 316.554376, 1714.673702, 1764.248025));
     luyifan::GridMap::Ptr grid_map(new luyifan::GridMap(600, 250, 125, 100, 0.2));
     fusion = new luyifan::Fusion(camera, grid_map);
 

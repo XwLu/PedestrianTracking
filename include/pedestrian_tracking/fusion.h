@@ -19,7 +19,7 @@ namespace luyifan{
 
 ///Position of camera in grid map
 #define CameraX 126
-#define CameraY 108
+#define CameraY 105
 //number of particles in PF
 #define Partcile_NUM 20
 
@@ -28,11 +28,11 @@ namespace luyifan{
         Fusion(Camera::Ptr _camera, GridMap::Ptr _map);
         ~Fusion();
 
-        void Process(const cv::Mat& _map, const Eigen::Vector4i& _uvs);
+        void Process(const cv::Mat& _map, const pair<int, Eigen::Vector4i>& _pair);
         void Show(const cv::Mat& _map);
         Eigen::Vector2i ProjectiveCamera2GridPixel(Eigen::Vector3d _pos);
         Eigen::Vector3d ProjectiveGridPixel2Camera(Eigen::Vector2i _pos);
-        int ObjectAssociation(Eigen::Vector4i _uvs);
+        std::vector<std::pair<int, Eigen::Vector4i>> ObjectAssociation(std::vector<Eigen::Vector4i> _uvs);
         inline std::vector<ParticleFilter> Pedestrians(){return pedestrians_;}
     private:
         ///Camera
