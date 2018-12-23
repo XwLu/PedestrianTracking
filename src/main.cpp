@@ -2,8 +2,6 @@
 #include "common/my_mutex.h"
 
 using namespace std;
-#define IMAGE_ROWS 720.0
-#define IMAGE_COLS 1280.0
 
 cv::Mat global_grid_map;
 boost::shared_mutex mutex_map;
