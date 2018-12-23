@@ -16,21 +16,21 @@ rows_(_rows), cols_(_cols), origin_x_(_origin_x), origin_y_(_origin_y), resolvin
 
 GridMap::~GridMap() {}
 
-Eigen::Vector2i GridMap::Pixel2Map(Eigen::Vector2i _pos) {
+Eigen::Vector2i GridMap::Pixel2Map(const Eigen::Vector2i& _pos) {
     return Eigen::Vector2i(
       _pos(0),
       rows_ - _pos(1)
     );
 }
 
-Eigen::Vector2i GridMap::Map2Pixel(Eigen::Vector2i _pos) {
+Eigen::Vector2i GridMap::Map2Pixel(const Eigen::Vector2i& _pos) {
     return Eigen::Vector2i(
       _pos(0),
       rows_ - _pos(1)
     );
 }
 
-Vector2i GridMap::GetPixelOnEdge(Eigen::Vector2i _begin, Eigen::Vector2i _end) {
+Vector2i GridMap::GetPixelOnEdge(const Eigen::Vector2i& _begin, const Eigen::Vector2i& _end) {
     if(_end(0) == _begin(0))
         return Vector2i(_begin(0), 0);
     else if(_end(0) < _begin(0)){

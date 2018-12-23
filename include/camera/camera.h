@@ -17,8 +17,9 @@ namespace luyifan{
 
         Camera(double _cx, double _cy, double _fx, double _fy);
         ~Camera();
-        Eigen::Vector3d ProjectivePixel2Camera(Eigen::Vector2d _uv, double _depth);
-        Eigen::Vector2i ProjectiveCamera2Pixel(Eigen::Vector3d _pos);
+        Eigen::Vector3d ProjectivePixel2Camera(const Eigen::Vector2d& _uv, const double& _depth);
+        Eigen::Vector2i ProjectiveCamera2Pixel(const Eigen::Vector3d& _pos);
+        inline Eigen::Matrix3d K(){ return K_;}
 
     private:
         double cx_, cy_, fx_, fy_;

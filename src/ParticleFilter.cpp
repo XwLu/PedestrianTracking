@@ -10,7 +10,7 @@ using namespace Eigen;
 using namespace cv;
 
 ParticleFilter::ParticleFilter(int _num, vector<geometry_msgs::PointStamped>& _candidates):
-num_(_num), mean_(0.0), stddev_(2.0){
+num_(_num), mean_(0.0), stddev_(1.0){
     sort(_candidates.begin(), _candidates.end(), [](const geometry_msgs::PointStamped& p1,
                                                     const geometry_msgs::PointStamped& p2){
         return p1.point.z > p2.point.z;
@@ -23,6 +23,7 @@ num_(_num), mean_(0.0), stddev_(2.0){
     ParticlesInit(_candidates);
     noise_ = std::normal_distribution<double>(mean_, stddev_);
     generator_ = std::default_random_engine(time(0));//避免每次循环都一样
+    last_update_ = ros::Time::now();
 }
 
 ParticleFilter::~ParticleFilter() {}
@@ -155,4 +156,6 @@ void ParticleFilter::Update(const std::vector<geometry_msgs::PointStamped>& _can
     vel_.linear.y = VelocityLimit(res.position.y - tmp_result_.position.y, 1);
     //cout<<"v_x: "<<vel_.linear.x<<" v_y: "<<vel_.linear.y<<endl;
     tmp_result_ = res;
+
+    last_update_ = ros::Time::now();
 }

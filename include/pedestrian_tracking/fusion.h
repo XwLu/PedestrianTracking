@@ -28,17 +28,19 @@ namespace luyifan{
         Fusion(Camera::Ptr _camera, GridMap::Ptr _map);
         ~Fusion();
 
-        void Process(const cv::Mat& _map, const pair<int, Eigen::Vector4i>& _pair);
+        void Process(const cv::Mat& _map, const std::pair<int, Eigen::Vector4i>& _pair);
         void Show(const cv::Mat& _map);
-        Eigen::Vector2i ProjectiveCamera2GridPixel(Eigen::Vector3d _pos);
-        Eigen::Vector3d ProjectiveGridPixel2Camera(Eigen::Vector2i _pos);
-        std::vector<std::pair<int, Eigen::Vector4i>> ObjectAssociation(std::vector<Eigen::Vector4i> _uvs);
+        Eigen::Vector2i ProjectiveCamera2GridPixel(const Eigen::Vector3d& _pos);
+        Eigen::Vector3d ProjectiveGridPixel2Camera(const Eigen::Vector2i& _pos);
+        std::vector<std::pair<int, Eigen::Vector4i>> ObjectAssociation(const std::vector<Eigen::Vector4i>& _uvs);
         inline std::vector<ParticleFilter> Pedestrians(){return pedestrians_;}
+        void DeleteOldPedestrians();
     private:
         ///Camera
         Camera::Ptr camera_;
         GridMap::Ptr map_;
         std::vector<ParticleFilter> pedestrians_;
+        double life_time_;
     };
 }
 #endif //PEDESTRIAN_TRACKING_FUSION_H

@@ -35,7 +35,7 @@ void BoundingBoxCallback(const std_msgs::Float64MultiArrayConstPtr& _bbxs) {
     if(!num)
         return;
     ///处理
-    vector<Eigen::Vector4i> global_uvs(num);
+    vector<Eigen::Vector4i> global_uvs = {};
     for(int i=0; i<num; ++i){
         double u_left_top, v_left_top, u_right_bottom, v_right_bottom;
         u_left_top = _bbxs->data[i*4];
@@ -46,12 +46,12 @@ void BoundingBoxCallback(const std_msgs::Float64MultiArrayConstPtr& _bbxs) {
         uv<<u_left_top, v_left_top, u_right_bottom, v_right_bottom;
         global_uvs.emplace_back(uv);
     }
-    vector<pair<int, Eigen::Vector4i>> pairs(num);
+    vector<pair<int, Eigen::Vector4i>> pairs = {};
     pairs = fusion->ObjectAssociation(global_uvs);
-    for(auto p : pairs){
+    for(auto& p : pairs){
         fusion->Process(global_grid_map, p);
     }
-
+    fusion->DeleteOldPedestrians();
 }
 
 

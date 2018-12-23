@@ -6,20 +6,18 @@ using namespace Eigen;
 using namespace cv;
 
 Fusion::Fusion(Camera::Ptr _camera, GridMap::Ptr _map):
-        camera_(_camera), map_(_map){
-
-}
+        camera_(_camera), map_(_map), life_time_(3.0){}
 
 Fusion::~Fusion() {}
 
-Vector2i Fusion::ProjectiveCamera2GridPixel(Eigen::Vector3d _pos) {
+Vector2i Fusion::ProjectiveCamera2GridPixel(const Eigen::Vector3d& _pos) {
     Point origin(CameraX, map_->Rows()-CameraY);
     Point xy_map(origin.x + _pos(0)*map_->InvResolving(), origin.y - _pos(2)*map_->InvResolving());
     Vector2i result(xy_map.x, xy_map.y);
     return result;
 }
 
-Vector3d Fusion::ProjectiveGridPixel2Camera(Eigen::Vector2i _pos) {
+Vector3d Fusion::ProjectiveGridPixel2Camera(const Eigen::Vector2i& _pos) {
     Point origin(CameraX, map_->Rows()-CameraY);
     return Vector3d(
             (_pos(0) - origin.x)*map_->Resolving(),
@@ -28,35 +26,38 @@ Vector3d Fusion::ProjectiveGridPixel2Camera(Eigen::Vector2i _pos) {
     );
 }
 
-std::vector<std::pair<int, Eigen::Vector4i>> Fusion::ObjectAssociation(Eigen::Vector4i _uvs) {
-    int id = 0;
-    for(auto pedestrian : pedestrians_){
-
-        if(fabs(uv(0) - 0.5*(_uvs(0) + _uvs(2))) < std::max(700.0 / max(cam(2), 0.1) + 200, 200.0))
-            return id;
-        id++;
+void Fusion::DeleteOldPedestrians() {
+    for(auto iter = pedestrians_.begin(); iter != pedestrians_.end();){
+        if(iter->TimeNotInView(ros::Time::now()) > life_time_)
+            iter = pedestrians_.erase(iter);
+        else
+            iter++;
     }
-    return -1;//新出现的人
 }
 
-vector<pair<int, Eigen::Vector4i>> Fusion::ObjectAssociation(vector<Eigen::Vector4i> _uvs) {
+vector<pair<int, Eigen::Vector4i>> Fusion::ObjectAssociation(const vector<Eigen::Vector4i>& _uvs) {
+    assert(!_uvs.empty());
     ///暴力匹配
-    map<double, pair<int, int>> maps;
+    vector<pair<double, pair<int, int>>> maps = {};
     ///每种组合求距离
     for(int i=0; i<_uvs.size(); i++){
         for(int j=0; j<pedestrians_.size(); j++){
-            Vector2i pix = map_->Map2Pixel(Eigen::Vector2i(pedestrians_[j].Result().position.x, pedestrians_[j].Result().position.y));
-            Vector3d cam = ProjectiveGridPixel2Camera(pix);
-            Vector2i uv = camera_->ProjectiveCamera2Pixel(cam);
-            double distance = fabs(uv(0) - 0.5*(_uvs[i](0) + _uvs[i](2)));
-            maps[distance] = pair<int, int>(i, j);
-            //cout<<"depth: "<<cam(2)<<" distance: "<<distance<<endl;
+            Vector3d xyz_cam = camera_->ProjectivePixel2Camera(Vector2d(0.5*(_uvs[i](0)+_uvs[i](2)), 0.5*(_uvs[i](1) + _uvs[i](3))), 50);
+            Vector2i xy_map = ProjectiveCamera2GridPixel(xyz_cam);
+            double distance = Dist2Line(Vector2d(CameraX, CameraY), Vector2d(xy_map(0), map_->Rows()-xy_map(1)), Vector2d(pedestrians_[j].Result().position.x, pedestrians_[j].Result().position.y));
+            //cout<<"uv: "<<i<<" ped: "<<j<<" distance: "<<distance<<endl;
+            maps.emplace_back(make_pair(distance, pair<int, int>(i, j)));
         }
     }
+    sort(maps.begin(), maps.end(),[](const pair<double, pair<int, int>> a, pair<double, pair<int, int>>b){
+        return a.first<b.first;
+    });
     ///提取组合
-    vector<pair<int, int>> pairs;
+    vector<pair<int, int>> pairs = {};
     for(int i=0; i<min(_uvs.size(), pedestrians_.size()); i++){
-        if(maps.begin()->first > 500){
+        if(maps.empty())
+            break;
+        if(maps.begin()->first > 20.0){
             ROS_ERROR("Distance too large. Break directly!");
             break;
         }
@@ -65,18 +66,33 @@ vector<pair<int, Eigen::Vector4i>> Fusion::ObjectAssociation(vector<Eigen::Vecto
         int second = p.second;
         pairs.emplace_back(p);
         maps.erase(maps.begin());
-        for(auto iter=maps.begin(); iter!=maps.end(); iter++){
+        for(auto iter=maps.begin(); iter!=maps.end();){
             if(iter->second.first == first || iter->second.second == second)
-                maps.erase(iter);
+                iter = maps.erase(iter);
+            else
+                iter++;
         }
     }
     ///存入已经提取的组合
-    vector<pair<int, Eigen::Vector4i>> associations(_uvs.size());
-    for(auto p:pairs){
+    vector<pair<int, Eigen::Vector4i>> associations = {};
+    for(auto& p:pairs){
         associations.emplace_back(pair<int, Eigen::Vector4i>(p.second, _uvs[p.first]));
-        //TODO: _uvs.erase(&(_uvs[p.first]));
     }
-    //TODO: 新目标的组合
+    ///新目标的组合
+    bool bNew;
+    for(int i=0; i<_uvs.size(); i++){
+        bNew = true;
+        for(auto& p:pairs){
+            if(i==p.first){
+                bNew = false;
+                break;
+            }
+        }
+        if(bNew){
+            associations.emplace_back(pair<int, Eigen::Vector4i>(-1, _uvs[i]));
+        }
+    }
+    return associations;
 }
 
 void Fusion::Show(const cv::Mat& _map) {
@@ -110,6 +126,7 @@ void Fusion::Show(const cv::Mat& _map) {
 
 
 void Fusion::Process(const cv::Mat& _map, const pair<int, Eigen::Vector4i>& _pair) {
+    Eigen::Vector4i _uvs = _pair.second;
     //imshow("grid_map_origin", _map);
     //waitKey(5);
     ///计算mask
@@ -139,20 +156,24 @@ void Fusion::Process(const cv::Mat& _map, const pair<int, Eigen::Vector4i>& _pai
     floodFill(mask, Point(seed(0), seed(1)), Scalar(255));
     //imshow("mask", mask);
     //waitKey(5);
-
     ///覆盖mask到原栅格图
     Mat grid_map;
     _map.copyTo(grid_map);
     map_->ApplyMaskToMap(grid_map, mask);
     //imshow("grid_map", grid_map);
     //waitKey(5);
-
     ///提取栅格图中的候选目标
     vector<geometry_msgs::PointStamped> candidates = {};
     map_->ObjectExtractor(grid_map, candidates);
-
     ///根据行人的像素高度估计深度值
-    double depth = 7;
+    double fy = camera_->K()(1,1);
+    double h = _uvs(3)-_uvs(1) + 50;//50是调试出来的修正值
+    double depth = fy * 1.7 / h;
+    ///镜头内的人距离摄像头太近，无法看到整个人，该方法失效(可以用宽度近似估计)
+    if(h > 410){
+        depth = 4.0;
+    }
+    //cout<<"h: "<<(_uvs(3)-_uvs(1))<<" depth: "<<depth<<endl;
 
     ///计算候选点的置信度
     xyz_cam = camera_->ProjectivePixel2Camera(Vector2d(0.5*(_uvs(0)+_uvs(2)), 0.5*(_uvs(1) + _uvs(3))), depth);
@@ -162,29 +183,29 @@ void Fusion::Process(const cv::Mat& _map, const pair<int, Eigen::Vector4i>& _pai
         double lat = Dist2Line(Vector2d(CameraX, CameraY), Vector2d(xy_map(0), map_->Rows()-xy_map(1)), Vector2d(object.point.x, object.point.y));
         double lon = pow(lat*lat + pow(object.point.x-xy_map(0), 2.0) + pow(object.point.y-map_->Rows()+xy_map(1), 2.0), 0.5);
         object.point.z = gconf.GetValue(lat, lon);
-        //cout<<"x: "<<object.point.x<<" y: "<<object.point.y<<" z: "<<object.point.z<<endl;
         //cout<<"x: "<<lat<<" y: "<<lon<<" z: "<<object.point.z<<endl;
     }
+
+    /*
+    Mat tmp = _map.clone();
+    circle(tmp, Point(xy_map(0), xy_map(1)), 2, Scalar(255), 1);
+    imshow("estimate", tmp);
+    waitKey(5);
+    */
 
     if(candidates.empty()){
         ROS_ERROR("no candidates in laser scanner!!");
         return;
     }
 
-    ///确定是否是新的目标
-    int index = ObjectAssociation(_uvs);
-    //TODO: 调试
-    if(!pedestrians_.empty())
-        index = 0;
     //新出现的人
-    if(index < 0){
+    if(_pair.first < 0){
         cout<<"New pedestrian show up!"<<candidates.size()<<" candidates detected!"<<endl;
         ParticleFilter pedestrian(Partcile_NUM, candidates);//初始化粒子滤波
         pedestrians_.emplace_back(pedestrian);
     } else{
-        pedestrians_[index].Update(candidates);
+        pedestrians_[_pair.first].Update(candidates);
     }
-
 }
 
 

@@ -15,7 +15,7 @@ Camera::Camera(double _cx, double _cy, double _fx, double _fy):
 
 Camera::~Camera() {}
 
-Vector3d Camera::ProjectivePixel2Camera(Vector2d _uv, double _depth) {
+Vector3d Camera::ProjectivePixel2Camera(const Vector2d& _uv, const double& _depth) {
     return Vector3d (
          (_uv(0) - cx_)*_depth/fx_,
          (_uv(1) - cy_)*_depth/fy_,
@@ -23,7 +23,7 @@ Vector3d Camera::ProjectivePixel2Camera(Vector2d _uv, double _depth) {
     );
 }
 
-Vector2i Camera::ProjectiveCamera2Pixel(Eigen::Vector3d _pos) {
+Vector2i Camera::ProjectiveCamera2Pixel(const Eigen::Vector3d& _pos) {
     return Vector2i(
           fx_ * _pos(0) / _pos(2) + cx_,
           fy_ * _pos(1) / _pos(2) + cy_

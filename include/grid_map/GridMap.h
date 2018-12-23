@@ -24,11 +24,11 @@ namespace luyifan{
         inline double Resolving() { return resolving_; }
         inline double InvResolving() { return inv_resolving_;}
 
-        Eigen::Vector2i GetPixelOnEdge(Eigen::Vector2i _begin, Eigen::Vector2i _end);
+        Eigen::Vector2i GetPixelOnEdge(const Eigen::Vector2i& _begin, const Eigen::Vector2i& _end);
         void ObjectExtractor(const cv::Mat& _src, std::vector<geometry_msgs::PointStamped>& _objects);
         void ApplyMaskToMap(cv::Mat _src, cv::Mat _mask);
-        Eigen::Vector2i Pixel2Map(Eigen::Vector2i _pos);
-        Eigen::Vector2i Map2Pixel(Eigen::Vector2i _pos);
+        Eigen::Vector2i Pixel2Map(const Eigen::Vector2i& _pos);
+        Eigen::Vector2i Map2Pixel(const Eigen::Vector2i& _pos);
 
     private:
         int rows_;

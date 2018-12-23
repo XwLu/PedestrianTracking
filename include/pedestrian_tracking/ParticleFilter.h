@@ -30,6 +30,9 @@ namespace luyifan{
         void NormalizeConfidence(std::vector<geometry_msgs::Pose>& _particles, double& _sum_con);
         void Resampling(std::vector<geometry_msgs::Pose>& _particles, const double _sum_conf);
         geometry_msgs::Pose WeightedAverage(const std::vector<geometry_msgs::Pose>& _particles);
+        inline double TimeNotInView(const ros::Time& _tNow){
+            return _tNow.sec - last_update_.sec;
+        }
     private:
         std::vector<geometry_msgs::Pose> particles_;
         int num_;
@@ -40,6 +43,8 @@ namespace luyifan{
         double stddev_;//标准差
         std::default_random_engine generator_;
         std::normal_distribution<double> noise_;
+
+        ros::Time last_update_;
     };
 };
 
