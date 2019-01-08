@@ -126,6 +126,7 @@ void Fusion::Show(const cv::Mat& _map) {
 
 
 void Fusion::Process(const cv::Mat& _map, const pair<int, Eigen::Vector4i>& _pair) {
+    boost::timer timer_detection;
     Eigen::Vector4i _uvs = _pair.second;
     //imshow("grid_map_origin", _map);
     //waitKey(5);
@@ -165,6 +166,8 @@ void Fusion::Process(const cv::Mat& _map, const pair<int, Eigen::Vector4i>& _pai
     ///提取栅格图中的候选目标
     vector<geometry_msgs::PointStamped> candidates = {};
     map_->ObjectExtractor(grid_map, candidates);
+    cout<<"Lidar detection costs time: "<<timer_detection.elapsed()<<" s."<<endl;
+    boost::timer timer_tracking;
     ///根据行人的像素高度估计深度值
     double fy = camera_->K()(1,1);
     double h = _uvs(3)-_uvs(1) + 50;//50是调试出来的修正值
@@ -206,6 +209,7 @@ void Fusion::Process(const cv::Mat& _map, const pair<int, Eigen::Vector4i>& _pai
     } else{
         pedestrians_[_pair.first].Update(candidates);
     }
+    cout<<"Tracking costs time: "<<timer_tracking.elapsed()<<" s."<<endl;
 }
 
 

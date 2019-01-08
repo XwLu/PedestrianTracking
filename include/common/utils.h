@@ -6,6 +6,8 @@
 #define PEDESTRIAN_TRACKING_UTILS_H
 
 #include <Eigen/Core>
+#include <iostream>
+#include <fstream>
 
 namespace luyifan{
     inline Eigen::Vector2i Average(const std::vector<Eigen::Vector2i>& _As){
@@ -34,6 +36,15 @@ namespace luyifan{
         double b = _begin(1) - k * _begin(0);
 
         return fabs(k * _point(0) - _point(1) + b) / pow(1 + k*k, 0.5);
+    }
+
+    void WriteToText(const double& _x, const double& _y){
+        std::ofstream mycout("/home/luyifan/tmp.txt");
+        if(mycout){
+            mycout<< _x<<" "<<_y<< std::endl;
+            mycout.close();
+        } else
+            std::cerr<<"No txt to record data!"<<std::endl;
     }
 }
 

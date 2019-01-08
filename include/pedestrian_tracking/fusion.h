@@ -14,6 +14,7 @@
 #include "grid_map/GridMap.h"
 #include "common/utils.h"
 #include "std_msgs/Float64MultiArray.h"
+#include "boost/timer.hpp"
 
 namespace luyifan{
 
