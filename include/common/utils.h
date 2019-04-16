@@ -38,7 +38,7 @@ namespace luyifan{
         return fabs(k * _point(0) - _point(1) + b) / pow(1 + k*k, 0.5);
     }
 
-    void WriteToText(const double& _x, const double& _y){
+    inline void WriteToText(const double& _x, const double& _y){
         std::ofstream mycout("/home/luyifan/tmp.txt");
         if(mycout){
             mycout<< _x<<" "<<_y<< std::endl;
