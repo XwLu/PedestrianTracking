@@ -132,7 +132,7 @@ void Fusion::Process(const cv::Mat& _map, const pair<int, Eigen::Vector4i>& _pai
     //waitKey(5);
     ///计算mask
     Mat mask3C(_map.size(), CV_8UC1, cv::Scalar(0));
-    double z = 10;
+    double z = (map_->Rows() - CameraY) * map_->InvResolving() * 0.75;
     vector<Vector2i> edges = {};
     Vector3d xyz_cam = camera_->ProjectivePixel2Camera(Vector2d(_uvs(0), _uvs(1)), z);
 
@@ -143,7 +143,7 @@ void Fusion::Process(const cv::Mat& _map, const pair<int, Eigen::Vector4i>& _pai
 
     xyz_cam = camera_->ProjectivePixel2Camera(Vector2d(_uvs(2), _uvs(3)), z);
     xy_map = ProjectiveCamera2GridPixel(xyz_cam);
-    Vector2i xy2 = map_->GetPixelOnEdge(Vector2i(125, 500), Vector2i(xy_map));
+    Vector2i xy2 = map_->GetPixelOnEdge(Vector2i(CameraX, map_->Rows() - CameraY), Vector2i(xy_map));
     edges.emplace_back(xy2);
     line(mask3C, Point(CameraX, map_->Rows()-CameraY), Point(xy2(0), xy2(1)), Scalar(255), 2, CV_AA);
     edges.emplace_back(Vector2i(CameraX, map_->Rows()-CameraY));
